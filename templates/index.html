@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Treasure Hunt</title>
+    
+    <!-- Load the rounded, treasure-style font -->
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+DW+Pica&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Apply background image to the entire webpage */
+        body {
+            font-family: 'IM Fell DW Pica', serif;
+            background-image: url('{{ url_for("static", filename="treasure_bg.jpg") }}'); /* Background image */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: black;
+            text-align: center;
+        }
+
+        /* Title and subtitle styling with white background */
+        .title-container {
+            background-color: rgba(255, 255, 255, 0.8); /* White background with slight transparency */
+            padding: 20px;
+            display: inline-block;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .map-container {
+            position: relative;
+            width: 800px;
+            margin: auto;
+        }
+        img {
+            width: 100%;
+            height: auto;
+        }
+
+        .location {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .location:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 1px solid #ccc;
+        }
+
+        /* Style the riddle popup box */
+        .popup {
+            display: none;
+            position: absolute;
+            background-color: #fef4e9;
+            color: black;
+            border: 5px solid goldenrod;
+            padding: 15px;
+            border-radius: 15px;
+            z-index: 100;
+            width: 400px;
+            font-family: 'IM Fell DW Pica', serif;
+            font-style: italic;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+            background-image: url('{{ url_for("static", filename="parchment.jpg") }}');
+            background-size: cover;
+        }
+
+        .popup p {
+            margin: 5px 0;
+            line-height: 1.5;
+            white-space: pre-line;
+        }
+        .popup button {
+            background-color: white;
+            color: navy;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .popup button:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Google Form button for submitting answers */
+        .form-button {
+            display: none;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .form-button a {
+            background-color: navy;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .form-button a:hover {
+            background-color: #004080;
+        }
+    </style>
+</head>
+<body>
+    <div class="title-container">
+        <h1>Treasure Hunt - An Invaluable Treasure for You!</h1>
+        <p>See your initial Riddle and start finding the locations solving the riddles. Click on the locations' exact word, and it will reveal the next riddle. Collect your words and try to find the hidden TREASURE. After collecting the words by clicking on all the locations, a button will appear in the bottom to submit your answers. First one to put their names will win!. This is the Map of University of Oulu!</p>
+    </div>
+
+    <div class="map-container">
+        <img src="{{ url_for('static', filename='map.png') }}" alt="Map">
+        
+        <!-- Define clickable locations -->
+        <div class="location" style="top: 683px; left: 306px;" data-location="location1"></div>
+        <div class="location" style="top: 820px; left: 440px;" data-location="location2"></div>
+        <div class="location" style="top: 645px; left: 260px;" data-location="location3"></div>
+        <div class="location" style="top: 615px; left: 460px;" data-location="location4"></div>
+        <div class="location" style="top: 155px; left: 368px;" data-location="location5"></div>
+
+        <!-- second set-->
+        <div class="location" style="top: 540px; left: 324px;" data-location="location6"></div>
+        <div class="location" style="top: 290px; left: 348px;" data-location="location7"></div>
+        <div class="location" style="top: 758px; left: 373px;" data-location="location8"></div>
+        <div class="location" style="top: 980px; left: 450px;" data-location="location9"></div>
+        <div class="location" style="top: 155px; left: 380px;" data-location="location10"></div>
+    </div>
+    
+    <!-- Riddle Popup -->
+    <div id="popup" class="popup">
+        <p id="riddle-text"></p>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <!-- Google Form Button -->
+    <div id="form-button" class="form-button">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSc4X8IIN0OJVZvahNeLEvglWWgh5U8DMX5HwaSoYcUk6_lOAg/viewform?usp=header" target="_blank">Submit Answers</a>
+    </div>
+
+    <script>
+        const locations = {{ locations|tojson|safe }};
+        const popup = document.getElementById('popup');
+        const riddleText = document.getElementById('riddle-text');
+        const formButton = document.getElementById('form-button');
+
+        let revealedRiddlesSet1 = 0; 
+        let revealedRiddlesSet2 = 0; 
+        const totalRiddlesSet1 = 5; 
+        const totalRiddlesSet2 = 5; 
+
+        document.querySelectorAll('.location').forEach(location => {
+            location.addEventListener('click', () => {
+                const locKey = location.dataset.location;
+                const riddle = locations[locKey].riddle;
+                riddleText.textContent = riddle;
+                popup.style.display = 'block';
+                popup.style.top = location.style.top;
+                popup.style.left = location.style.left;
+
+                if (!location.classList.contains('revealed')) {
+                    location.classList.add('revealed');
+
+                    // Check if the clicked location is in Set 1 or Set 2
+                    if (parseInt(locKey.replace('location', '')) <= 5) {
+                        revealedRiddlesSet1++;
+                    } else {
+                        revealedRiddlesSet2++;
+                    }
+                }
+
+                // Show the form button if either set is fully revealed
+                if (revealedRiddlesSet1 === totalRiddlesSet1 || revealedRiddlesSet2 === totalRiddlesSet2) {
+                    formButton.style.display = 'block';
+                }
+            });
+        });
+
+        function closePopup() {
+            popup.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
